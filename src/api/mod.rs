@@ -1,6 +1,7 @@
-use std::fmt::Display;
+use std::{env, fmt::Display};
 
-use reqwest::blocking::{self as rq, RequestBuilder, Response};
+use inquire::Text;
+use reqwest::blocking::{Client, RequestBuilder, Response};
 use secrecy::{ExposeSecret, SecretString};
 use serde::de::DeserializeOwned;
 use serde_json::json;
@@ -8,6 +9,8 @@ use types::{
     requests::UpdateLoginRequest, responses::SessionResponse, ConnectedDevice, Device, LanStatus,
     WanStatus,
 };
+
+use crate::utils::ui::SafePrompt;
 
 mod routes;
 pub mod types;
@@ -23,7 +26,7 @@ impl ApiState for Unauthenticated {}
 impl ApiState for Authenticated {}
 pub struct Api<State: ApiState> {
     url: String,
-    pub client: rq::Client,
+    pub client: Client,
     state: State,
 }
 impl<State: ApiState> Api<State> {
@@ -32,10 +35,23 @@ impl<State: ApiState> Api<State> {
     }
 }
 impl Api<Unauthenticated> {
+    fn prompt_router_addr() -> String {
+        env::var("GF1200_ADDR").ok().unwrap_or_else(|| {
+            let addr = Text::new("<endereço>")
+                .with_help_message("Deixe em branco pra usar '192.168.0.1'")
+                .safely_prompt();
+            if addr.is_empty() {
+                "192.168.0.1".to_string()
+            } else {
+                addr
+            }
+        })
+    }
     pub fn new() -> Self {
+        let router_addr = Self::prompt_router_addr();
         Self {
-            url: format!("http://10.0.0.1/{}", routes::ROOT),
-            client: rq::Client::new(),
+            url: format!("http://{router_addr}/{}", routes::ROOT),
+            client: Client::new(),
             state: Unauthenticated,
         }
     }

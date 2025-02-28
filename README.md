@@ -47,9 +47,9 @@ Por exemplo, pra instalar declarativamente num NixOS (`x86_64-linux` ou `aarch64
 ## Uso
 `gf1200-cli` depois de instalado pra rodar. 
 A interface funciona como um [REPL](https://pt.wikipedia.org/wiki/REPL). O comando `help`
-lista todos os comandos disponível.
+lista todos os comandos disponível. Pra sair, `exit` ou Ctrl-C (ou Ctrl-D).
 
-Pra sair, `exit` ou Ctrl-C (ou Ctrl-D).
+Se uma variável `GF1200_ADDR` existir, ela vai ser usada como IP do roteador direto.
 
 ## Progresso
 #### Essencial
