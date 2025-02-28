@@ -10,7 +10,7 @@ use types::{
     WanStatus,
 };
 
-use crate::utils::ui::SafePrompt;
+use crate::utils::{log, ui::SafePrompt};
 
 mod routes;
 pub mod types;
@@ -77,18 +77,20 @@ impl Api<Unauthenticated> {
                 "password": password
             }))
             .send()
-            .inspect_err(|e| eprintln!("can't send {}: {e}", routes::SESSION))
+            .inspect_err(|e| log!(fatal: (format!("falha ao criar sessão: {e}."))))
             .unwrap()
             .error_for_status()
             .map_or_else(
                 |_| {
-                    eprintln!("login failed. (are the credentials correct?)");
+                    log!(fatal: "falha no login, possivelmente credenciais incorretas.");
                     std::process::exit(0);
                 },
                 |response| {
                     response
                         .json::<SessionResponse>()
-                        .inspect_err(|e| eprintln!("can't parse {} response: {e}", routes::SESSION))
+                        .inspect_err(|e| {
+                            log!(fatal: (format!("falha ao ler dados de {}: {e} (isso nunca deve acontecer.)", routes::SESSION)));
+                        })
                         .unwrap()
                         .token
                         .into()
@@ -116,7 +118,7 @@ impl Api<Authenticated> {
     pub fn connected_devices(&self) -> Option<Vec<ConnectedDevice>> {
         self.get(routes::DEVICES).send().map_or_else(
             |e| {
-                eprintln!("failed to GET {}: {e:?}", routes::DEVICES);
+                log!(warn: (format!("[?] GET '{}': {e:?}", routes::DEVICES)));
                 None
             },
             parse_json_response,
@@ -127,7 +129,7 @@ impl Api<Authenticated> {
             .send()
             .map_or_else(
                 |e| {
-                    eprintln!("failed to GET /connected_device: {e:?}");
+                    log!(warn: (format!("[?] GET '{}': {e:?}", routes::DEVICES)));
                     None
                 },
                 parse_json_response,
@@ -182,6 +184,6 @@ impl Api<Authenticated> {
 fn parse_json_response<T: DeserializeOwned>(response: Response) -> Option<T> {
     response
         .json::<T>()
-        .inspect_err(|_| eprintln!("failed to parse response."))
+        .inspect_err(|_| log!(warn: "falha ao deserializar resposta."))
         .ok()
 }
